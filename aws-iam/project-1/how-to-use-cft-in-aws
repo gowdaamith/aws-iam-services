@@ -1,0 +1,62 @@
+Got it! Let’s go step by step on how to use this CloudFormation template so it actually deploys your dynamic multi-tenant IAM setup on AWS.
+________________________________________
+1️⃣ Save the Template
+1.	Open a text editor (VS Code, Notepad++, etc.).
+2.	Paste the rewritten CloudFormation YAML template.
+3.	Save it as a file, e.g.:
+multi-tenant-iam.yml
+________________________________________
+2️⃣ Prepare AWS Environment
+•	Make sure you have an AWS account.
+•	Ensure your AWS CLI or AWS Management Console is ready.
+•	If using CLI, configure credentials:
+aws configure
+________________________________________
+3️⃣ Deploy via AWS Management Console
+1.	Login to AWS Console → CloudFormation.
+2.	Click Create Stack → With new resources (standard).
+3.	Choose Upload a template file → select your multi-tenant-iam.yml.
+4.	Click Next.
+5.	Fill Parameters:
+o	Tenant1Name → e.g., tenant1
+o	Tenant2Name → e.g., tenant2
+6.	Click Next → configure options as needed → Next → Create stack.
+7.	Wait for the stack to finish CREATE_COMPLETE.
+________________________________________
+4️⃣ Deploy via AWS CLI
+You can also deploy directly from the CLI:
+aws cloudformation create-stack \
+    --stack-name multi-tenant-iam \
+    --template-body file://multi-tenant-iam.yml \
+    --parameters ParameterKey=Tenant1Name,ParameterValue=tenant1 \
+                 ParameterKey=Tenant2Name,ParameterValue=tenant2 \
+    --capabilities CAPABILITY_NAMED_IAM
+Important: Always include --capabilities CAPABILITY_NAMED_IAM when creating IAM resources.
+________________________________________
+5️⃣ Check the Deployment
+•	Go to IAM → Users / Groups / Roles in the console:
+o	You should see Tenant1DevUser, Tenant2DevUser, etc.
+o	Roles like Tenant1-DevRole, Tenant2-DevRole.
+o	Groups with policies allowing AssumeRole only.
+•	Go to S3 → verify buckets: tenant1-data-bucket, tenant2-data-bucket.
+•	Go to CloudFormation → Outputs → see role ARNs, bucket names.
+________________________________________
+6️⃣ How Developers Use It
+1.	Login as Tenant1DevUser.
+2.	Run AssumeRole to get temporary credentials for their tenant’s role:
+aws sts assume-role \
+    --role-arn <Tenant1DevRoleARN> \
+    --role-session-name Tenant1Session
+3.	Export temporary credentials as environment variables:
+export AWS_ACCESS_KEY_ID=<AccessKeyId>
+export AWS_SECRET_ACCESS_KEY=<SecretAccessKey>
+export AWS_SESSION_TOKEN=<SessionToken>
+4.	Now the developer can access only their tenant’s S3 bucket using these temporary credentials.
+________________________________________
+✅ Summary
+•	Users have no direct S3 access.
+•	Groups allow AssumeRole only.
+•	Roles contain full S3 access per tenant.
+•	Temporary credentials provide secure, limited-time access.
+________________________________________
+
