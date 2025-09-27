@@ -1,0 +1,81 @@
+1.S3 Buckets 
+
+*Two separate s3 Buckets are created for tenant 1 and tenant 2
+*these buckets act as isolated storage per tenant .so no tenanat can access  the othere  data by default
+
+
+2.IAM Groups
+
+*Groups are created for developers and admin of each tenanat
+*Groups are used to attach policies in bulk .rather than attaching policies to individual
+ user
+ *Developers =>limited access to s3 per tenanat
+ *Admins     =>full access (all aws resources)
+
+ 3.IAM users
+
+ *Users represent individual people or service account
+*Users are assigned to their  respective  group , so they automatically inherit the permission of the group
+
+Tenant1DevUser
+Tenant2DevUser
+Tenant1Adminuser
+Tenant2Adminuser
+
+4.IAM policies
+a) Developers policies(least privileges)
+
+Tenant1S3policy
+Tenant2S3policy
+
+*Developers can list.read. and write objects only in their tenants s3 buckets
+*no access to other tenant's bucket ->enfore data isolation
+
+b)Admin policies(full access)
+Tenant1AdminPolicy
+Tenant2AdminPolicy
+
+*admins have full access to all aws resources
+*typically used for managing user ,roles. and infrastructure.
+
+5.STS Roles (Temporary  credentials for developeres)
+
+*each tenanat has a role that developeres can assume using STS (security token system)
+*provide temporary credentials instead of  long -term access
+*Developers can perforns actions only for a limited time   redusing secuirty risks
+
+1.Developer logs in ->request sts temporary credentials ->assumes tenantxdevrole4
+2.Role policies enforecce tenant-specipic s3 access
+3.After the session expires ,credentials are invalid -> automatic security clean up
+
+
+6.Auditor role
+
+*a read-only role that external auditor ro compliance teams can assume 
+*can view all resources but  cannot make changes
+*helps with audit and compliance check
+
+7.Cloud trail (Auditing IAM and resource action )
+
+*logs all aws api calls including iam action
+*stores logs in the tenanat 1 s3 bucket (can be expanded to separate  audit  bucket)
+*helps track who did what when  -> essential for security monitoring
+
+8.AWWS config (configuration monitoring)
+
+*IAM configrecorder
+*config role
+
+*Monitor IAM configuration changes .like new user .policies, or roles
+*Ensure compliance with security best practicese
+* can trigger alert if .for example  ,a user gets excessive permission 
+
+9.Overall flow 
+
+1.User Creattion  -> assigned to a group -> inherit the policies
+2.Role Assumption -> temporary.tenant-speocific access
+3.Developer ->limited s3 access per tenant
+4.Admins -> full access fro managing  resource
+5.Auditor ->read-only access for compliance
+6.cloudtrail and cofig -> logall acitvity and monitor complliance
+7.S3 buckets -> data storage  isolated per tenanat
