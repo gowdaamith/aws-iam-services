@@ -1,0 +1,233 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Dynamic High-Level AWS IAM Multi-Tenant Project with STS, Auditing, and Roles"
+
+Parameters:
+  Tenant1Name:
+    Type: String
+    Default: tenant1
+    Description: Name prefix for Tenant 1 resources
+
+  Tenant2Name:
+    Type: String
+    Default: tenant2
+    Description: Name prefix for Tenant 2 resources
+
+Resources:
+
+  # ============================
+  # S3 Buckets for Tenants
+  # ============================
+  Tenant1Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Tenant1Name}-data-bucket"
+
+  Tenant2Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Tenant2Name}-data-bucket"
+
+  # ============================
+  # IAM Groups (AssumeRole only)
+  # ============================
+  Tenant1DevelopersGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: !Sub "${Tenant1Name}-Developers"
+
+  Tenant2DevelopersGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: !Sub "${Tenant2Name}-Developers"
+
+  Tenant1AdminsGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: !Sub "${Tenant1Name}-Admins"
+
+  Tenant2AdminsGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: !Sub "${Tenant2Name}-Admins"
+
+  # ============================
+  # IAM Users
+  # ============================
+  Tenant1DevUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${Tenant1Name}-dev"
+      Groups:
+        - Ref: Tenant1DevelopersGroup
+
+  Tenant2DevUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${Tenant2Name}-dev"
+      Groups:
+        - Ref: Tenant2DevelopersGroup
+
+  Tenant1AdminUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${Tenant1Name}-admin"
+      Groups:
+        - Ref: Tenant1AdminsGroup
+
+  Tenant2AdminUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${Tenant2Name}-admin"
+      Groups:
+        - Ref: Tenant2AdminsGroup
+
+  # ============================
+  # Group Policies (AssumeRole only)
+  # ============================
+  Tenant1DeveloperGroupPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${Tenant1Name}-AssumeRolePolicy"
+      Groups:
+        - Ref: Tenant1DevelopersGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Tenant1Name}-DevRole"
+
+  Tenant2DeveloperGroupPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${Tenant2Name}-AssumeRolePolicy"
+      Groups:
+        - Ref: Tenant2DevelopersGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${Tenant2Name}-DevRole"
+
+  # ============================
+  # Admin Policies (Full Access)
+  # ============================
+  Tenant1AdminPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${Tenant1Name}-AdminPolicy"
+      Groups:
+        - Ref: Tenant1AdminsGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "*"
+            Resource: "*"
+
+  Tenant2AdminPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub "${Tenant2Name}-AdminPolicy"
+      Groups:
+        - Ref: Tenant2AdminsGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: "*"
+            Resource: "*"
+
+  # ============================
+  # STS Roles for Developers (Tenant-Specific S3 Access)
+  # ============================
+  Tenant1DevRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Tenant1Name}-DevRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref Tenant1DevUser
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${Tenant1Name}-S3Access"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt Tenant1Bucket.Arn
+                  - !Sub "${Tenant1Bucket.Arn}/*"
+
+  Tenant2DevRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Tenant2Name}-DevRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref Tenant2DevUser
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${Tenant2Name}-S3Access"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt Tenant2Bucket.Arn
+                  - !Sub "${Tenant2Bucket.Arn}/*"
+
+  # ============================
+  # Auditor Role (Read-Only)
+  # ============================
+  AuditorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ReadOnlyAuditor
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+
+Outputs:
+  Tenant1BucketName:
+    Description: "Tenant 1 S3 Bucket Name"
+    Value: !Ref Tenant1Bucket
+
+  Tenant2BucketName:
+    Description: "Tenant 2 S3 Bucket Name"
+    Value: !Ref Tenant2Bucket
+
+  Tenant1DevRoleARN:
+    Description: "Tenant 1 Developer STS Role ARN"
+    Value: !GetAtt Tenant1DevRole.Arn
+
+  Tenant2DevRoleARN:
+    Description: "Tenant 2 Developer STS Role ARN"
+    Value: !GetAtt Tenant2DevRole.Arn
+
+  AuditorRoleARN:
+    Description: "Read-Only Auditor Role ARN"
+    Value: !GetAtt AuditorRole.Arn
