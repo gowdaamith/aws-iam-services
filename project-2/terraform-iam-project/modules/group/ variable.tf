@@ -1,3 +1,3 @@
-variable "group_name"{}
-varible "path"{default="/"}
-varilble "policy_arn"{type=list(string) default= []}
+variable "group_name" {}
+variable "path" { default = "/" }
+variable "policy_arns" { type = list(string) default = [] }
