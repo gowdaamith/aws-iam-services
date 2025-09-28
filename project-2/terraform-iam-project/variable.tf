@@ -1,11 +1,11 @@
 variable "region" {
   description = "AWS region to deploy resources"
   type        = string
-  default     = "us-east-1"
+  default     = "ap-south-1"
 }
 
 variable "user_name" {
-  description = "Name of the IAM user"
+  description = "IAM user name"
   type        = string
   default     = "DevUser"
 }
