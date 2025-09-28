@@ -1,3 +1,4 @@
-varible "policy_name"{}
-varible"description"{default=""}
-varible"policy_document"{}
+variable "policy_name" {}
+variable "description" { default = "" }
+variable "policy_document" {}
+
