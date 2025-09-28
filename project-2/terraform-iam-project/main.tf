@@ -28,8 +28,11 @@ module "s3_readonly_policy" {
 module "dev_group" {
   source      = "./modules/group"
   group_name  = var.group_name
-  policy_arns = [module.s3_readonly_policy.policy_arn]
+  policy_arns = {
+    s3_readonly = module.s3_readonly_policy.policy_arn
+  }
 }
+
 
 # -------------------------------
 # User Module
