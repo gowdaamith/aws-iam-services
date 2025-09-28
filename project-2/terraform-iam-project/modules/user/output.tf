@@ -1,7 +1,6 @@
-varible "user_arn"{
-    value=aws_iam_user.new_user.arn
+output "user_arn" {
+  value = aws_iam_user.this.arn
 }
-varible "user_name"{
-    value=aws_iam_user.new_user.name
+output "user_name" {
+  value = aws_iam_user.this.name
 }
-
