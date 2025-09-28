@@ -1,2 +1,1 @@
-# aws
-this repository contain project from the basics to the advanced concepts
+This will contain the the information about the all the IAS services
